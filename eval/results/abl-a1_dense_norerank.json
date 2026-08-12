@@ -1,0 +1,671 @@
+{
+  "provenance": {
+    "git_sha": "5da6ade",
+    "gold_set": "curated.jsonl",
+    "gold_set_sha256": "553c83c3d248c202",
+    "prompt_fingerprint": "93d27f7119c13d60",
+    "embedding_model": "BAAI/bge-m3",
+    "reranker_model": "BAAI/bge-reranker-base",
+    "rerank_with_context": true,
+    "retrieval_mode": "dense",
+    "rerank_enabled": false,
+    "retrieval": {
+      "pool": 40,
+      "fused": 24,
+      "topk": 6,
+      "rrf_k": 60,
+      "rerank_min_score": 0.05,
+      "hnsw_ef_search": 100
+    },
+    "judge_model": null,
+    "judge_temperature": null,
+    "generation_model": null,
+    "python": "3.12.11"
+  },
+  "retrieval": {
+    "n": 30,
+    "n_answerable": 25,
+    "n_unanswerable": 5,
+    "recall@10": 0.94,
+    "mrr": 0.6611,
+    "ndcg@10": 0.7337,
+    "hit_rate": 0.96,
+    "abstain_recall": 0.0,
+    "by_category": {
+      "multi_filing_comparison": {
+        "n": 4,
+        "recall@10": 0.875,
+        "ndcg@10": 0.8046
+      },
+      "risk_factor_synthesis": {
+        "n": 3,
+        "recall@10": 1.0,
+        "ndcg@10": 0.6003
+      },
+      "single_fact": {
+        "n": 8,
+        "recall@10": 1.0,
+        "ndcg@10": 0.8202
+      },
+      "table_lookup": {
+        "n": 7,
+        "recall@10": 1.0,
+        "ndcg@10": 0.8044
+      },
+      "temporal": {
+        "n": 3,
+        "recall@10": 0.6667,
+        "ndcg@10": 0.377
+      }
+    }
+  },
+  "citations": {
+    "n_scored_accession": 21,
+    "n_scored_item": 25,
+    "accession_accuracy": 1.0,
+    "item_accuracy": 0.84
+  },
+  "per_question": [
+    {
+      "id": "sf-01",
+      "category": "single_fact",
+      "question": "What was Apple's effective tax rate in fiscal 2023?",
+      "hit": true,
+      "best_rank": 3,
+      "retrieved_ids": [
+        98,
+        96,
+        97,
+        91,
+        123,
+        104,
+        100,
+        85,
+        112,
+        84
+      ],
+      "latency_s": 0.106
+    },
+    {
+      "id": "sf-02",
+      "category": "single_fact",
+      "question": "How much did Apple spend on research and development in fiscal 2023?",
+      "hit": true,
+      "best_rank": 2,
+      "retrieved_ids": [
+        96,
+        95,
+        85,
+        91,
+        84,
+        98,
+        104,
+        94,
+        90,
+        110
+      ],
+      "latency_s": 0.092
+    },
+    {
+      "id": "sf-03",
+      "category": "single_fact",
+      "question": "What were Apple's total net sales in fiscal 2023?",
+      "hit": true,
+      "best_rank": 4,
+      "retrieved_ids": [
+        87,
+        90,
+        91,
+        110,
+        95,
+        88,
+        84,
+        112,
+        92,
+        85
+      ],
+      "latency_s": 0.096
+    },
+    {
+      "id": "sf-04",
+      "category": "single_fact",
+      "question": "What did Apple report under Item 1B, Unresolved Staff Comments?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        72,
+        9,
+        123,
+        125,
+        126,
+        120,
+        121,
+        26,
+        130,
+        55
+      ],
+      "latency_s": 0.1
+    },
+    {
+      "id": "sf-05",
+      "category": "single_fact",
+      "question": "What does Apple disclose under Mine Safety Disclosures?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        77,
+        63,
+        9,
+        131,
+        49,
+        139,
+        51,
+        21,
+        50,
+        121
+      ],
+      "latency_s": 0.132
+    },
+    {
+      "id": "sf-06",
+      "category": "single_fact",
+      "question": "What does Microsoft disclose under Mine Safety Disclosures?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        288,
+        252,
+        186,
+        227,
+        250,
+        174,
+        183,
+        274,
+        381,
+        213
+      ],
+      "latency_s": 0.098
+    },
+    {
+      "id": "sf-07",
+      "category": "single_fact",
+      "question": "What are Apple's reportable geographic segments?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        14,
+        87,
+        23,
+        90,
+        74,
+        86,
+        12,
+        69,
+        85,
+        123
+      ],
+      "latency_s": 0.114
+    },
+    {
+      "id": "sf-08",
+      "category": "single_fact",
+      "question": "What did Microsoft report about unresolved staff comments?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        284,
+        368,
+        363,
+        369,
+        191,
+        325,
+        295,
+        373,
+        227,
+        193
+      ],
+      "latency_s": 0.095
+    },
+    {
+      "id": "tbl-01",
+      "category": "table_lookup",
+      "question": "What was Apple's provision for income taxes in fiscal 2023?",
+      "hit": true,
+      "best_rank": 3,
+      "retrieved_ids": [
+        96,
+        98,
+        97,
+        85,
+        91,
+        123,
+        100,
+        84,
+        112,
+        94
+      ],
+      "latency_s": 0.09
+    },
+    {
+      "id": "tbl-02",
+      "category": "table_lookup",
+      "question": "How much revenue did Apple's Americas segment generate in fiscal 2023?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        87,
+        88,
+        14,
+        90,
+        91,
+        85,
+        92,
+        96,
+        95,
+        94
+      ],
+      "latency_s": 0.096
+    },
+    {
+      "id": "tbl-03",
+      "category": "table_lookup",
+      "question": "What were Apple's iPhone net sales in fiscal 2023?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        90,
+        91,
+        87,
+        88,
+        85,
+        95,
+        110,
+        96,
+        112,
+        84
+      ],
+      "latency_s": 0.092
+    },
+    {
+      "id": "tbl-04",
+      "category": "table_lookup",
+      "question": "What were Apple's Greater China net sales in fiscal 2023?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        87,
+        88,
+        91,
+        14,
+        90,
+        85,
+        95,
+        92,
+        94,
+        84
+      ],
+      "latency_s": 0.098
+    },
+    {
+      "id": "tbl-05",
+      "category": "table_lookup",
+      "question": "How much of Apple's fiscal 2023 net sales came from Services?",
+      "hit": true,
+      "best_rank": 3,
+      "retrieved_ids": [
+        91,
+        90,
+        110,
+        92,
+        95,
+        94,
+        85,
+        87,
+        93,
+        96
+      ],
+      "latency_s": 0.096
+    },
+    {
+      "id": "tbl-06",
+      "category": "table_lookup",
+      "question": "What was Apple's statutory federal income tax rate in fiscal 2023?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        97,
+        96,
+        98,
+        100,
+        91,
+        123,
+        104,
+        85,
+        112,
+        84
+      ],
+      "latency_s": 0.097
+    },
+    {
+      "id": "tbl-07",
+      "category": "table_lookup",
+      "question": "What were Apple's Mac net sales in fiscal 2023?",
+      "hit": true,
+      "best_rank": 2,
+      "retrieved_ids": [
+        91,
+        90,
+        88,
+        85,
+        87,
+        84,
+        96,
+        110,
+        89,
+        95
+      ],
+      "latency_s": 0.092
+    },
+    {
+      "id": "cmp-01",
+      "category": "multi_filing_comparison",
+      "question": "How do Apple and Microsoft each describe their Mine Safety Disclosures?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        77,
+        288,
+        250,
+        186,
+        63,
+        252,
+        183,
+        51,
+        200,
+        364
+      ],
+      "latency_s": 0.093
+    },
+    {
+      "id": "cmp-02",
+      "category": "multi_filing_comparison",
+      "question": "Which reportable segments does Microsoft describe, and how do they differ from Apple's?",
+      "hit": true,
+      "best_rank": 2,
+      "retrieved_ids": [
+        227,
+        195,
+        301,
+        365,
+        207,
+        14,
+        309,
+        196,
+        363,
+        339
+      ],
+      "latency_s": 0.104
+    },
+    {
+      "id": "cmp-03",
+      "category": "multi_filing_comparison",
+      "question": "Do both Apple and Microsoft identify international operations as a risk to their results?",
+      "hit": true,
+      "best_rank": 2,
+      "retrieved_ids": [
+        280,
+        23,
+        25,
+        273,
+        264,
+        62,
+        59,
+        28,
+        50,
+        49
+      ],
+      "latency_s": 0.094
+    },
+    {
+      "id": "cmp-04",
+      "category": "multi_filing_comparison",
+      "question": "How do Apple and Microsoft each describe risks from taxation of foreign earnings?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        273,
+        70,
+        272,
+        105,
+        264,
+        101,
+        67,
+        103,
+        25,
+        66
+      ],
+      "latency_s": 0.103
+    },
+    {
+      "id": "tmp-01",
+      "category": "temporal",
+      "question": "Did Apple's effective tax rate rise or fall between fiscal 2022 and fiscal 2023?",
+      "hit": true,
+      "best_rank": 3,
+      "retrieved_ids": [
+        98,
+        96,
+        97,
+        91,
+        84,
+        94,
+        95,
+        104,
+        112,
+        123
+      ],
+      "latency_s": 0.102
+    },
+    {
+      "id": "tmp-02",
+      "category": "temporal",
+      "question": "How did Apple's research and development spending change from fiscal 2022 to fiscal 2023?",
+      "hit": true,
+      "best_rank": 2,
+      "retrieved_ids": [
+        96,
+        95,
+        84,
+        94,
+        85,
+        91,
+        98,
+        88,
+        60,
+        104
+      ],
+      "latency_s": 0.108
+    },
+    {
+      "id": "tmp-03",
+      "category": "temporal",
+      "question": "Were Apple's total net sales higher in fiscal 2022 or fiscal 2023?",
+      "hit": false,
+      "best_rank": null,
+      "retrieved_ids": [
+        87,
+        90,
+        91,
+        95,
+        84,
+        96,
+        88,
+        89,
+        86,
+        92
+      ],
+      "latency_s": 0.099
+    },
+    {
+      "id": "rsk-01",
+      "category": "risk_factor_synthesis",
+      "question": "What supply chain concentration risk does Apple describe?",
+      "hit": true,
+      "best_rank": 9,
+      "retrieved_ids": [
+        27,
+        35,
+        36,
+        69,
+        33,
+        28,
+        25,
+        23,
+        37,
+        34
+      ],
+      "latency_s": 0.086
+    },
+    {
+      "id": "rsk-02",
+      "category": "risk_factor_synthesis",
+      "question": "What risks does Microsoft identify around its investment in artificial intelligence?",
+      "hit": true,
+      "best_rank": 3,
+      "retrieved_ids": [
+        236,
+        255,
+        232,
+        267,
+        252,
+        254,
+        256,
+        269,
+        246,
+        177
+      ],
+      "latency_s": 0.096
+    },
+    {
+      "id": "rsk-03",
+      "category": "risk_factor_synthesis",
+      "question": "What does Microsoft say about its dependence on attracting and retaining employees?",
+      "hit": true,
+      "best_rank": 1,
+      "retrieved_ids": [
+        281,
+        190,
+        191,
+        177,
+        194,
+        179,
+        236,
+        192,
+        195,
+        298
+      ],
+      "latency_s": 0.094
+    },
+    {
+      "id": "una-01",
+      "category": "unanswerable",
+      "question": "What was Amazon's operating income in fiscal 2023?",
+      "hit": false,
+      "best_rank": null,
+      "retrieved_ids": [
+        87,
+        91,
+        92,
+        96,
+        110,
+        85,
+        95,
+        313,
+        84,
+        118
+      ],
+      "latency_s": 0.095
+    },
+    {
+      "id": "una-02",
+      "category": "unanswerable",
+      "question": "What will Apple's revenue be in fiscal 2027?",
+      "hit": false,
+      "best_rank": null,
+      "retrieved_ids": [
+        87,
+        95,
+        90,
+        84,
+        91,
+        110,
+        92,
+        112,
+        85,
+        96
+      ],
+      "latency_s": 0.096
+    },
+    {
+      "id": "una-03",
+      "category": "unanswerable",
+      "question": "Should I buy Microsoft stock?",
+      "hit": false,
+      "best_rank": null,
+      "retrieved_ids": [
+        236,
+        177,
+        182,
+        252,
+        394,
+        289,
+        221,
+        338,
+        179,
+        172
+      ],
+      "latency_s": 0.112
+    },
+    {
+      "id": "una-04",
+      "category": "unanswerable",
+      "question": "What was Apple's effective tax rate in fiscal 2019?",
+      "hit": false,
+      "best_rank": null,
+      "retrieved_ids": [
+        98,
+        97,
+        123,
+        96,
+        100,
+        70,
+        112,
+        104,
+        91,
+        110
+      ],
+      "latency_s": 0.094
+    },
+    {
+      "id": "una-05",
+      "category": "unanswerable",
+      "question": "How many employees did Apple's Vision Pro division have in 2023?",
+      "hit": false,
+      "best_rank": null,
+      "retrieved_ids": [
+        85,
+        90,
+        91,
+        87,
+        96,
+        95,
+        161,
+        92,
+        19,
+        89
+      ],
+      "latency_s": 0.093
+    }
+  ],
+  "elapsed_s": 3.1
+}

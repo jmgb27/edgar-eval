@@ -24,6 +24,9 @@ data/cache/
 # Eval output. baseline.json IS committed; per-run results are not.
 eval/results/*.json
 !eval/results/.gitkeep
+# The ablation rows are the README table's evidence, so they are tracked.
+!eval/results/abl-*.json
+!eval/results/latest.json
 
 # OS
 .DS_Store
