@@ -1,0 +1,134 @@
+[project]
+name = "edgar-eval"
+version = "0.1.0"
+description = "Measured RAG over SEC filings — hybrid retrieval, reranking, and an eval gate that fails the build."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain>=1.3.0",
+    "langchain-openai>=1.0.0",
+    "langchain-anthropic>=1.0.0",
+    "langgraph>=1.2.0",
+    "langfuse>=4.14.0",
+    "unstructured[html]>=0.25.0",
+    "psycopg[binary,pool]>=3.2",
+    "pgvector>=0.3.6",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "httpx>=0.28",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "python-dotenv>=1.0.0",
+    "structlog>=24.4",
+    "tenacity>=9.0",
+    "lxml>=5.3",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Only needed to run the eval harness and the nightly batch sweep.
+eval = [
+    "ragas>=0.4.0",
+    "anthropic>=0.40",
+    "datasets>=3.0",
+]
+# Only needed inside the embeddings container image.
+embed = [
+    "torch>=2.4",
+    "sentence-transformers>=5.0",
+    "FlagEmbedding>=1.3",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "types-pyyaml",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/edgar_eval"]
+
+# ---------------------------------------------------------------------------
+# ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "scripts", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # pycodestyle / pyflakes
+    "I",             # isort
+    "N",             # pep8-naming
+    "UP",            # pyupgrade
+    "B",             # bugbear
+    "A",             # builtin shadowing
+    "C4",            # comprehensions
+    "SIM",           # simplify
+    "TID",           # tidy imports
+    "PTH",           # use pathlib
+    "RUF",
+    "ASYNC",
+    "S",             # bandit
+]
+# E501 is the formatter's job. S101 (assert) is correct in tests and in
+# internal invariants. RUF001/2/3 (ambiguous unicode) fire constantly and
+# uselessly here: SEC filings genuinely use en and em dashes in Item
+# headings, so the parser's test data has to contain them, and the "·"
+# separator in the contextual header is deliberate.
+ignore = ["E501", "S101", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "ARG"]
+"scripts/**" = ["T201"]          # print() is the right interface for a CLI
+
+[tool.ruff.lint.isort]
+known-first-party = ["edgar_eval"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# ---------------------------------------------------------------------------
+# mypy — strict on our code, pragmatic about untyped ML libraries
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+files = ["src", "scripts"]
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = [
+    "unstructured.*",
+    "ragas.*",
+    "langfuse.*",
+    "FlagEmbedding.*",
+    "sentence_transformers.*",
+    "pgvector.*",
+    "datasets.*",
+    # Only ever imported inside the embeddings container image, which
+    # installs it; the API venv deliberately does not.
+    "torch.*",
+]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "integration: needs a live postgres and/or the embeddings service",
+]
+asyncio_mode = "auto"

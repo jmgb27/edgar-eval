@@ -1,0 +1,75 @@
+# edgar-eval — four services, one command.
+#
+# Services are added phase by phase; `embeddings`, `bootstrap` and `api` arrive
+# with their Dockerfiles. Until then `docker compose up` brings up Postgres and
+# `uv run python scripts/migrate.py` creates the schema.
+#
+# Conventions match devops_portfolio/docker-compose.yml: ${VAR:-default}
+# indirection everywhere, a real healthcheck on every long-running service, and
+# dependants gated on `condition: service_healthy` rather than on start order.
+
+services:
+  postgres:
+    # pgvector 0.8.x. See db/migrations/001_extensions.sql for why <0.8 breaks
+    # filtered vector search.
+    image: pgvector/pgvector:0.8.6-pg17
+    container_name: edgar-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-edgar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-edgar}
+      POSTGRES_DB: ${POSTGRES_DB:-edgar}
+    ports:
+      - "${POSTGRES_PORT:-5442}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # maintenance_work_mem drives HNSW build time; the parallel workers matter
+    # when re-indexing the full corpus after a model change.
+    command: >
+      postgres
+      -c shared_buffers=1GB
+      -c work_mem=64MB
+      -c maintenance_work_mem=1GB
+      -c max_parallel_maintenance_workers=4
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-edgar} -d ${POSTGRES_DB:-edgar}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  embeddings:
+    # BGE embedder + cross-encoder reranker, weights baked into the image.
+    # See docker/embeddings.Dockerfile for why this is not TEI and not
+    # in-process in the API.
+    build:
+      context: .
+      dockerfile: docker/embeddings.Dockerfile
+      args:
+        EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-m3}
+        RERANKER_MODEL: ${RERANKER_MODEL:-BAAI/bge-reranker-base}
+    container_name: edgar-embeddings
+    environment:
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-m3}
+      RERANKER_MODEL: ${RERANKER_MODEL:-BAAI/bge-reranker-base}
+      # Unset by default: the service sizes its own thread pool from the
+      # container's real CPU allocation. Set EMBED_THREADS only to override.
+      EMBED_THREADS: ${EMBED_THREADS:-}
+      # Belt and braces with the ENV in the Dockerfile: if either the image or
+      # compose stops forbidding downloads, the other still catches it.
+      HF_HUB_OFFLINE: "1"
+    ports:
+      - "${EMBEDDINGS_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8081/healthz"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      # Weights take ~40s to load off disk into RAM. Without this the
+      # container is marked unhealthy and restarted before it ever serves.
+      start_period: 120s
+    restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -1,0 +1,14 @@
+.git/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+__pycache__/
+data/filings/
+data/cache/
+eval/results/*.json
+docs/
+*.md
+!README.md
+.env
+.env.local

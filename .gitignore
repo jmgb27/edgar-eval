@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Secrets — never commit
+.env
+.env.local
+
+# Data. Filings are fetched, not committed; only accession numbers are tracked.
+data/filings/
+data/cache/
+!data/demo/
+!data/fixtures/
+
+# Eval output. baseline.json IS committed; per-run results are not.
+eval/results/*.json
+!eval/results/.gitkeep
+
+# OS
+.DS_Store
