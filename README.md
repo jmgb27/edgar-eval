@@ -198,9 +198,33 @@ makes `main` permanently red and teaches everyone to ignore the gate. Tables get
 the hard case cannot hide inside a healthy average, and `min_samples` catches a run whose
 denominator silently shrank.
 
-Verified in both directions: a deliberate regression produces **15 threshold breaches and exit 1**;
-the baseline exits 0. Results are written to the GitHub Actions job summary, so the Actions tab is
-itself the evidence.
+### It has actually fired
+
+[**PR #1**](https://github.com/jmgb27/edgar-eval/pull/1) is the receipt. It proposes a change that
+sounds entirely reasonable — *the reranker should judge the filing's own words, not a header we
+generated ourselves* — and every conventional check passed it: lint, types, 71 unit tests, and
+`docker compose up` coming up healthy on a clean runner.
+
+The eval gate failed it:
+
+| Metric | Baseline | PR | Delta | Floor |
+|---|---|---|---|---|
+| `recall@10` | 0.920 | 0.740 | **-0.180** | 0.850 |
+| `ndcg@10` | 0.654 | 0.375 | **-0.279** | 0.550 |
+| `mrr` | 0.579 | 0.282 | **-0.298** | 0.450 |
+| `hit_rate` | 0.960 | 0.760 | **-0.200** | 0.850 |
+
+Six questions stopped retrieving their gold span, and the two most telling are the simplest in the
+corpus: *"What did Apple report under Item 1B?"* and *"What does Microsoft disclose under Mine
+Safety Disclosures?"*. Those chunks read `None.` and `Not applicable.` — they carry nothing that
+says which company or Item they belong to, so the header is the only thing separating Apple's
+Item 1B from Microsoft's. Scoring raw text leaves the cross-encoder ranking identical boilerplate.
+
+Nothing about that change is *incorrect* in the sense a test suite understands. It is only worse,
+and only a measurement could say so. That is the entire argument for this repository, and PR #1 is
+where it happened rather than where it is claimed.
+
+Results are written to the GitHub Actions job summary, so the Actions tab is itself the evidence.
 
 No floor is set on citation-section accuracy. At a measured 0.680, any floor would ratify a known
 weakness rather than constrain it.
