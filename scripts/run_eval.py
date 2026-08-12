@@ -240,7 +240,14 @@ def main() -> int:
         print(
             f"    {category:26s} n={stats['n']:<3d} recall@{args.k}={stats[f'recall@{args.k}']:.3f}"
         )
-    print(f"\n  → {out.relative_to(REPO_ROOT)}")
+    # Path.relative_to raises when the target is not under REPO_ROOT, which
+    # is true for both an absolute --out elsewhere and a plain relative one.
+    # A cosmetic closing line must never decide the exit status of the eval.
+    try:
+        shown = out.resolve().relative_to(REPO_ROOT)
+    except ValueError:
+        shown = out
+    print(f"\n  → {shown}")
     return 0
 
 

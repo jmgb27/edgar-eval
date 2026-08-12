@@ -1,12 +1,14 @@
 {
   "provenance": {
-    "git_sha": "18e92a7",
+    "git_sha": "89fc956",
     "gold_set": "curated.jsonl",
     "gold_set_sha256": "553c83c3d248c202",
     "prompt_fingerprint": "93d27f7119c13d60",
     "embedding_model": "BAAI/bge-m3",
     "reranker_model": "BAAI/bge-reranker-base",
     "rerank_with_context": true,
+    "retrieval_mode": "hybrid",
+    "rerank_enabled": true,
     "retrieval": {
       "pool": 40,
       "fused": 24,
@@ -82,7 +84,7 @@
         70,
         19
       ],
-      "latency_s": 7.676
+      "latency_s": 6.661
     },
     {
       "id": "sf-02",
@@ -102,7 +104,7 @@
         88,
         91
       ],
-      "latency_s": 6.754
+      "latency_s": 7.029
     },
     {
       "id": "sf-03",
@@ -122,7 +124,7 @@
         90,
         86
       ],
-      "latency_s": 6.432
+      "latency_s": 6.358
     },
     {
       "id": "sf-04",
@@ -134,7 +136,7 @@
         9,
         72
       ],
-      "latency_s": 6.852
+      "latency_s": 6.909
     },
     {
       "id": "sf-05",
@@ -146,7 +148,7 @@
         77,
         9
       ],
-      "latency_s": 6.18
+      "latency_s": 6.157
     },
     {
       "id": "sf-06",
@@ -158,7 +160,7 @@
         288,
         174
       ],
-      "latency_s": 6.89
+      "latency_s": 7.047
     },
     {
       "id": "sf-07",
@@ -173,7 +175,7 @@
         87,
         74
       ],
-      "latency_s": 6.487
+      "latency_s": 6.613
     },
     {
       "id": "sf-08",
@@ -185,7 +187,7 @@
         284,
         174
       ],
-      "latency_s": 7.541
+      "latency_s": 7.449
     },
     {
       "id": "tbl-01",
@@ -205,7 +207,7 @@
         120,
         100
       ],
-      "latency_s": 5.846
+      "latency_s": 5.724
     },
     {
       "id": "tbl-02",
@@ -225,7 +227,7 @@
         98,
         100
       ],
-      "latency_s": 6.162
+      "latency_s": 5.915
     },
     {
       "id": "tbl-03",
@@ -245,7 +247,7 @@
         118,
         89
       ],
-      "latency_s": 6.651
+      "latency_s": 6.318
     },
     {
       "id": "tbl-04",
@@ -265,7 +267,7 @@
         25,
         89
       ],
-      "latency_s": 6.151
+      "latency_s": 6.206
     },
     {
       "id": "tbl-05",
@@ -285,7 +287,7 @@
         87,
         19
       ],
-      "latency_s": 6.853
+      "latency_s": 6.828
     },
     {
       "id": "tbl-06",
@@ -305,7 +307,7 @@
         85,
         116
       ],
-      "latency_s": 7.271
+      "latency_s": 7.166
     },
     {
       "id": "tbl-07",
@@ -325,7 +327,7 @@
         86,
         89
       ],
-      "latency_s": 6.268
+      "latency_s": 7.151
     },
     {
       "id": "cmp-01",
@@ -337,7 +339,7 @@
         9,
         77
       ],
-      "latency_s": 7.405
+      "latency_s": 8.751
     },
     {
       "id": "cmp-02",
@@ -351,7 +353,7 @@
         300,
         301
       ],
-      "latency_s": 7.53
+      "latency_s": 8.096
     },
     {
       "id": "cmp-03",
@@ -365,7 +367,7 @@
         22,
         59
       ],
-      "latency_s": 7.056
+      "latency_s": 6.856
     },
     {
       "id": "cmp-04",
@@ -378,7 +380,7 @@
         66,
         70
       ],
-      "latency_s": 7.743
+      "latency_s": 7.696
     },
     {
       "id": "tmp-01",
@@ -398,7 +400,7 @@
         123,
         103
       ],
-      "latency_s": 6.054
+      "latency_s": 6.135
     },
     {
       "id": "tmp-02",
@@ -418,7 +420,7 @@
         148,
         85
       ],
-      "latency_s": 6.748
+      "latency_s": 7.067
     },
     {
       "id": "tmp-03",
@@ -438,7 +440,7 @@
         98,
         86
       ],
-      "latency_s": 7.042
+      "latency_s": 6.696
     },
     {
       "id": "rsk-01",
@@ -453,7 +455,7 @@
         27,
         48
       ],
-      "latency_s": 5.546
+      "latency_s": 6.341
     },
     {
       "id": "rsk-02",
@@ -472,7 +474,7 @@
         269,
         258
       ],
-      "latency_s": 6.531
+      "latency_s": 7.112
     },
     {
       "id": "rsk-03",
@@ -484,7 +486,7 @@
         281,
         298
       ],
-      "latency_s": 7.8
+      "latency_s": 8.32
     },
     {
       "id": "una-01",
@@ -497,7 +499,7 @@
         359,
         324
       ],
-      "latency_s": 6.851
+      "latency_s": 6.882
     },
     {
       "id": "una-02",
@@ -510,7 +512,7 @@
         149,
         112
       ],
-      "latency_s": 6.693
+      "latency_s": 6.883
     },
     {
       "id": "una-03",
@@ -519,7 +521,7 @@
       "hit": false,
       "best_rank": null,
       "retrieved_ids": [],
-      "latency_s": 7.191
+      "latency_s": 7.295
     },
     {
       "id": "una-04",
@@ -536,7 +538,7 @@
         149,
         148
       ],
-      "latency_s": 6.494
+      "latency_s": 6.644
     },
     {
       "id": "una-05",
@@ -551,8 +553,8 @@
         84,
         91
       ],
-      "latency_s": 6.351
+      "latency_s": 6.371
     }
   ],
-  "elapsed_s": 205.1
+  "elapsed_s": 206.9
 }
