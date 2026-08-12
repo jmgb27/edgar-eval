@@ -1,0 +1,152 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Same shape as devops_portfolio/.github/workflows/ci.yaml: cancel superseded
+# runs so a busy branch does not queue behind its own stale jobs.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.9.9"
+
+jobs:
+  # ── no services, no secrets, ~1 min ──────────────────────
+  lint:
+    name: lint and types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --all-groups
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy
+
+  unit:
+    name: unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --all-groups
+      # Deliberately with no credentials in the environment: the unit suite
+      # asserts the no-API-key contract, and it can only do that honestly if
+      # the runner has no keys to accidentally pick up.
+      - run: uv run pytest tests/unit -q
+
+  # ── the one-command promise, enforced ────────────────────
+  #
+  # The README claims `docker compose up` works on a clean machine. This job is
+  # that claim: it runs the literal command on a runner that has never seen this
+  # project, and the badge it produces is the evidence. A promise nothing checks
+  # is a promise that rots.
+  compose-smoke:
+    name: docker compose up
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: cp .env.example .env
+      - name: Bring the stack up
+        run: docker compose up -d --build
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 60); do
+            db=$(docker inspect --format '{{.State.Health.Status}}' edgar-postgres 2>/dev/null || echo none)
+            em=$(docker inspect --format '{{.State.Health.Status}}' edgar-embeddings 2>/dev/null || echo none)
+            echo "postgres=$db embeddings=$em"
+            [ "$db" = healthy ] && [ "$em" = healthy ] && exit 0
+            sleep 10
+          done
+          echo "::error::services did not become healthy"
+          docker compose logs --tail 80
+          exit 1
+      - run: uv sync --all-groups
+      - name: Apply migrations
+        run: uv run python scripts/migrate.py
+      - name: Smoke the embeddings service
+        run: uv run pytest tests/integration/test_embeddings_service.py -q
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs --tail 200
+
+  # ── retrieval quality, no API key required ───────────────
+  #
+  # This is the gate that can run on a fork, because every metric it computes is
+  # deterministic code over gold spans rather than an LLM judgement. Forks get
+  # real coverage instead of a skipped job.
+  retrieval-gate:
+    name: retrieval eval gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: [lint, unit]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: cp .env.example .env
+      - run: docker compose up -d --build
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 60); do
+            db=$(docker inspect --format '{{.State.Health.Status}}' edgar-postgres 2>/dev/null || echo none)
+            em=$(docker inspect --format '{{.State.Health.Status}}' edgar-embeddings 2>/dev/null || echo none)
+            [ "$db" = healthy ] && [ "$em" = healthy ] && exit 0
+            sleep 10
+          done
+          docker compose logs --tail 80; exit 1
+      - run: uv sync --all-groups
+      - run: uv run python scripts/migrate.py
+
+      - name: Ingest the evaluation corpus
+        # A real contact address is required by SEC and must not be the
+        # placeholder from .env.example.
+        env:
+          EDGAR_USER_AGENT: ${{ vars.EDGAR_USER_AGENT }}
+        run: |
+          uv run python scripts/ingest_cli.py --ticker AAPL MSFT --form 10-K --years 2023 2023
+
+      - name: Validate the gold set against the corpus
+        # Runs before the metrics on purpose: a gold span that no longer exists
+        # would otherwise be scored as a retrieval miss, blaming the retriever
+        # for a broken test fixture.
+        run: uv run python scripts/validate_goldset.py
+
+      - name: Run the retrieval evaluation
+        run: uv run python scripts/run_eval.py --retrieval-only --out eval/results/pr.json
+
+      - name: Check thresholds
+        run: |
+          uv run python scripts/check_thresholds.py \
+            --results eval/results/pr.json \
+            --baseline eval/baseline.json \
+            --thresholds eval/thresholds.yaml \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: eval/results/pr.json
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs --tail 200

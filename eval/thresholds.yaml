@@ -1,0 +1,44 @@
+# What fails the build.
+#
+# Two-sided on purpose. An absolute floor alone lets quality rot slowly right
+# down to the bar and stop there. A regression tolerance alone lets a bad
+# baseline become permanent, because every run is only ever compared to the last
+# one. Together they catch both the cliff and the drift.
+#
+# Every number here is set from measurement, not aspiration -- see
+# docs/measurements.md. Raising a floor above what the system currently achieves
+# would make main permanently red, which teaches everyone to ignore the gate.
+
+# Fail if a metric drops below this, whatever the baseline says.
+absolute_floor:
+  recall@10: 0.85        # measured 0.920
+  ndcg@10: 0.55          # measured 0.654
+  mrr: 0.45              # measured 0.579
+  hit_rate: 0.85         # measured 0.960
+
+# Fail if a metric is worse than eval/baseline.json by more than this.
+#
+# These are sized to the deterministic path's run-to-run noise, which is zero:
+# retrieval metrics are computed in plain code over fixed gold spans, so the
+# same commit against the same corpus gives byte-identical numbers. The small
+# tolerance absorbs corpus drift (a re-ingest under a newer filing revision),
+# not measurement noise. Judge-scored metrics will need much wider tolerances
+# when they land, and they will get their own block rather than borrowing these.
+max_regression:
+  recall@10: 0.03
+  ndcg@10: 0.05
+  mrr: 0.05
+  hit_rate: 0.03
+
+# Tables are the hard case, so they get their own floor rather than being
+# allowed to hide inside the average.
+per_category_floor:
+  table_lookup:
+    recall@10: 0.85
+  single_fact:
+    recall@10: 0.85
+
+# Fail if the judge or a crash silently shrank the denominator. Without this a
+# run that scored three questions and passed would look identical to a run that
+# scored thirty.
+min_samples: 25

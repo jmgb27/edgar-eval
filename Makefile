@@ -70,3 +70,32 @@ test-all: ## Run every test, including those needing postgres
 
 .PHONY: check
 check: lint test ## Lint, type-check and unit-test
+
+# ── Corpus and evaluation ───────────────────────────────────
+.PHONY: corpus
+corpus: ## Ingest the evaluation corpus (AAPL + MSFT FY2023 10-K)
+	uv run python scripts/ingest_cli.py --ticker AAPL MSFT --form 10-K --years 2023 2023
+
+.PHONY: validate-goldset
+validate-goldset: ## Check every gold span exists verbatim in the corpus
+	uv run python scripts/validate_goldset.py
+
+.PHONY: eval-retrieval
+eval-retrieval: validate-goldset ## Retrieval metrics — deterministic, free, NO API KEY
+	uv run python scripts/run_eval.py --retrieval-only
+
+.PHONY: eval
+eval: validate-goldset ## Full evaluation, including judge-scored metrics (needs ANTHROPIC_API_KEY)
+	uv run python scripts/run_eval.py
+
+.PHONY: gate
+gate: ## Check the latest results against eval/thresholds.yaml
+	uv run python scripts/check_thresholds.py \
+		--results eval/results/latest.json \
+		--baseline eval/baseline.json \
+		--thresholds eval/thresholds.yaml
+
+.PHONY: baseline
+baseline: ## Record the current results as the new baseline (review the diff!)
+	cp eval/results/latest.json eval/baseline.json
+	@echo "baseline updated — commit it deliberately, never as a drive-by"
