@@ -216,3 +216,30 @@ this project argues against.
 
 `make eval-retrieval` and `make gate` are unaffected: every metric they report
 is deterministic code over gold spans and needs no credential of any kind.
+
+## Judge calibration (Phase 6)
+
+`claude-haiku-4-5`, temperature 0, over 50 balanced triples. **TPR 1.000,
+TNR 1.000**, no disagreements, 70s, well inside the > 0.90 gate.
+
+The first run scored 0.960/0.960 with two disagreements — and **both were defects
+in the calibration set, not judge errors**:
+
+| Triple | Judge said | What was actually wrong |
+|---|---|---|
+| `cmp-02-grounded` | UNGROUNDED | Correct. The builder collected contexts across all gold spans then truncated to three, and "Productivity and Business Processes" matches several Microsoft chunks — so the Apple chunk was crowded out and the triple was labelled GROUNDED with evidence that did not support it. Contexts are now collected per span. |
+| `tmp-03-ungrounded` | GROUNDED | Fair. The corruption had changed the *year* 2022 to 9022, which reads as a typo rather than a fabricated fact; the judge said so and noted the substantive claim held. Bare years are now excluded as corruption targets in favour of money and percentages. |
+
+Reporting those as judge errors would have understated the judge and hidden two
+real bugs in the measuring apparatus. Calibrating the instrument found faults in
+the calibration rig first, which is the ordinary way this goes.
+
+**What 1.000 does not mean.** The corruptions are unambiguous by construction —
+a leading digit changes, `$394,328` becomes `$994,328`. That is an easier
+discrimination than the subtle cases real generation produces: a figure from the
+right table but the wrong column, a correct number attributed to the wrong year,
+a claim that overstates a hedged sentence. Read it as *the instrument is not
+broken*, not as *the instrument is perfect*. At n=50 a single flipped judgement
+moves either rate by four points, so run-to-run differences of a point or two
+are noise. The honest next step is adding plausible rather than obvious
+corruptions and re-measuring.

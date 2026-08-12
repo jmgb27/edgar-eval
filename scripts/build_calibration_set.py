@@ -36,6 +36,13 @@ GOLD = REPO_ROOT / "eval" / "golden" / "curated.jsonl"
 OUT = REPO_ROOT / "eval" / "labels" / "judge_calibration.jsonl"
 
 _NUMBER = re.compile(r"\$?\d[\d,]*(?:\.\d+)?%?")
+# A bare four-digit year is not a usable corruption target. Turning 2022 into
+# 9022 reads as a typo rather than a fabricated fact, and a judge that says so
+# is being reasonable -- so the label would be wrong, not the judge. Money,
+# percentages and any figure carrying a decimal or thousands separator are
+# corrupted instead.
+_BARE_YEAR = re.compile(r"^(?:19|20)\d{2}$")
+PER_SPAN_CONTEXTS = 2
 
 # For answers carrying no figure to corrupt, a claim that contradicts the
 # passage outright. Keyed by gold question id so each is deliberate rather than
@@ -58,7 +65,10 @@ _CONTRADICTIONS: dict[str, str] = {
 
 def _corrupt_number(text: str) -> tuple[str, str] | None:
     """Alter the first figure in `text`, returning (corrupted, description)."""
-    match = _NUMBER.search(text)
+    match = next(
+        (m for m in _NUMBER.finditer(text) if not _BARE_YEAR.match(m.group(0))),
+        None,
+    )
     if not match:
         return None
     original = match.group(0)
@@ -99,11 +109,17 @@ def main() -> int:
         if q["category"] == "unanswerable":
             continue
         spans = q.get("reference_contexts") or []
-        contexts = [
-            text for span in spans for cid, text in chunks.items() if chunk_matches_span(text, span)
-        ]
-        # Deduplicate while preserving order; a span may match several chunks.
-        contexts = list(dict.fromkeys(contexts))[:3]
+        # Collect per span, not across all of them. A globally-truncated list
+        # lets one promiscuous span crowd out the evidence for the others: the
+        # phrase "Productivity and Business Processes" matches several Microsoft
+        # chunks, so a flat [:3] silently dropped the Apple chunk from a
+        # comparison question and left it labelled GROUNDED with evidence that
+        # did not support it. The judge caught exactly that, correctly.
+        contexts: list[str] = []
+        for span in spans:
+            matches = [text for text in chunks.values() if chunk_matches_span(text, span)]
+            contexts.extend(matches[:PER_SPAN_CONTEXTS])
+        contexts = list(dict.fromkeys(contexts))
         if not contexts:
             skipped.append(f"{q['id']}: no supporting chunk found")
             continue
