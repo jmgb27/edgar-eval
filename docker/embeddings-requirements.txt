@@ -1,0 +1,13 @@
+# Pinned separately from pyproject.toml on purpose: this image is standalone
+# (src/edgar_eval/embed/server.py imports nothing from edgar_eval), so it does
+# not install the project, and torch has no business in the API container.
+#
+# torch 2.9.1 rather than latest: it is the newest release with a cp312
+# linux/aarch64 wheel on the PyTorch CPU index. Newer versions build fine on
+# amd64 CI but would force an Apple Silicon developer onto emulation.
+torch==2.9.1
+sentence-transformers==5.7.0
+transformers==5.15.0
+fastapi==0.141.1
+uvicorn[standard]==0.52.1
+pydantic==2.13.4
