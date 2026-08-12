@@ -94,7 +94,7 @@ assumed, so pre-seeding costs ~4 minutes rather than ~13. Pre-computed vectors
 are still the right call, but the margin is smaller than `docs/measurements.md`
 first recorded.
 
-## Open question: what the reranker should score (Phase 4)
+## Resolved: what the reranker should score (Phases 4 and 6)
 
 Chunks are embedded with a contextual header (company, fiscal year, Item) so
 that a passage reading "increased 8% year over year" is retrievable at all. The
@@ -127,3 +127,49 @@ this project exists to argue against, so the question stays open until the
 curated gold set can answer it with a number. A likely third option worth
 measuring: a *shortened* header (company, year, Item only, dropping the section
 breadcrumb) to keep the disambiguation without the dilution.
+
+### Resolution (Phase 6)
+
+Settled on the 30-question curated set rather than on the single query above.
+`make eval-retrieval`, no API key, 25 answerable questions:
+
+| Metric | `rerank_with_context=true` | `=false` | Delta |
+|---|---|---|---|
+| Recall@10 | **0.920** | 0.740 | **+0.180** |
+| nDCG@10 | **0.654** | 0.370 | **+0.284** |
+| MRR | **0.579** | 0.275 | **+0.304** |
+| Hit rate | **0.960** | 0.760 | **+0.200** |
+
+nDCG@10 by category — the contextual header wins on **every one**:
+
+| Category | with header | bare text | Delta |
+|---|---|---|---|
+| risk_factor_synthesis | 0.667 | 0.119 | +0.548 |
+| single_fact | 0.845 | 0.413 | +0.432 |
+| multi_filing_comparison | 0.673 | 0.383 | +0.290 |
+| table_lookup | 0.546 | 0.431 | +0.116 |
+| temporal | 0.359 | 0.345 | +0.014 |
+
+**The single-query anecdote was backwards.** Judged on "What was the effective
+tax rate?" alone, the bare-text configuration looked better: it put a tax table
+at 0.801 while the contextual configuration ranked the answering chunk fourth.
+Measured across 25 questions, the contextual header is better on every metric
+and in every category, by margins far too large to be noise.
+
+That is the entire argument of this repository, demonstrated on its own code.
+Tuning on the anecdote would have shipped the weaker configuration and produced
+a benchmark table that looked perfectly respectable. `RERANK_WITH_CONTEXT` stays
+as a flag so the row remains reproducible, and the default stays `true`.
+
+### What the numbers still say is weak
+
+- **nDCG@10 (0.654) trails Recall@10 (0.920).** Answers are being retrieved but
+  not ranked first. That is a reranker-ordering problem, and it is the next
+  thing worth working on rather than something to paper over.
+- **temporal is the worst category** (nDCG 0.359) and barely benefits from the
+  header (+0.014). Year-over-year questions need two figures from one table;
+  span containment counts that as recalled while the ordering stays poor.
+- **abstain_recall is 0.20**, but that figure is not yet meaningful: in
+  retrieval-only mode abstention is approximated by "nothing survived the rerank
+  threshold", and refusing is a generation-layer decision. The real number needs
+  the generative path and lands with the Ragas work.
