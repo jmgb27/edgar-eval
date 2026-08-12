@@ -173,3 +173,46 @@ as a flag so the row remains reproducible, and the default stays `true`.
   retrieval-only mode abstention is approximated by "nothing survived the rerank
   threshold", and refusing is a generation-layer decision. The real number needs
   the generative path and lands with the Ragas work.
+
+## Citation accuracy (Phase 6)
+
+Judge-free, deterministic, free, and it answers the question an LLM judge is
+worst at: not "does this read as supported" but "does it point at the right
+document". A right answer with an invented citation is the worst failure mode in
+a financial corpus — confidently wrong *and* it defeats the verification the
+citation exists to enable — and a fabricated citation looks exactly like a real
+one to a judge.
+
+Measured over the 25 answerable curated questions:
+
+| Metric | Value | n | Reading |
+|---|---|---|---|
+| Accession accuracy | **1.000** | 21 | The top passage always came from the right filing. |
+| Item accuracy | **0.680** | 25 | It landed in the wrong Item about a third of the time. |
+
+Accession is scored on 21 rather than 25 because cross-filing comparison
+questions pin no single correct accession; scoring that dimension either way
+would be a fabrication, so it is reported as unscored.
+
+The split is a precise diagnosis rather than a single blurry score: retrieval
+identifies the **company** perfectly and the **section** unreliably. That pairs
+with nDCG@10 (0.654) trailing Recall@10 (0.920) — the right filing is found, the
+right passage within it is often not ranked first. Section-level ranking is the
+next thing worth working on, and it now has a number attached.
+
+No floor is set on item accuracy in `eval/thresholds.yaml`. A floor at or below
+0.680 would ratify a known weakness rather than constrain it, so the metric is
+tracked and reported until it improves enough to defend a floor.
+
+## Judge-scored metrics: not measured
+
+Faithfulness, answer relevancy and context precision are **not** in any table in
+this repository, because no calibrated judge has been run. The harness exists
+(`src/edgar_eval/eval/judge.py`, `scripts/calibrate_judge.py`) and the
+calibration set is built (50 balanced triples, labels certain by construction),
+but the Anthropic account backing the key has no credits, and running an
+uncalibrated judge to fill a column would produce exactly the kind of number
+this project argues against.
+
+`make eval-retrieval` and `make gate` are unaffected: every metric they report
+is deterministic code over gold spans and needs no credential of any kind.

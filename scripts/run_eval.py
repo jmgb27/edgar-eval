@@ -28,7 +28,12 @@ from typing import Any
 from edgar_eval.config import REPO_ROOT, settings
 from edgar_eval.db import close_pool
 from edgar_eval.embed.client import EmbeddingsClient
-from edgar_eval.eval.retrieval_metrics import aggregate, score_question
+from edgar_eval.eval.retrieval_metrics import (
+    aggregate,
+    aggregate_citations,
+    score_citation,
+    score_question,
+)
 from edgar_eval.graph.prompts import prompt_fingerprint
 from edgar_eval.logging import configure_logging, get_logger
 from edgar_eval.retrieve.filters import Filters, clamp_to_corpus
@@ -94,8 +99,8 @@ def provenance(*, retrieval_only: bool, gold_path: Path) -> dict[str, Any]:
 
 def evaluate_retrieval(
     questions: list[dict[str, Any]], *, embedder: EmbeddingsClient, k: int
-) -> tuple[list[Any], list[dict[str, Any]]]:
-    results, per_question = [], []
+) -> tuple[list[Any], list[Any], list[dict[str, Any]]]:
+    results, citations, per_question = [], [], []
 
     for q in questions:
         filters = clamp_to_corpus(
@@ -127,6 +132,21 @@ def evaluate_retrieval(
             abstained=(not ranked) if unanswerable else None,
         )
         results.append(result)
+
+        # Citation accuracy needs no generator: the top passage carries its
+        # own accession and Item.
+        if not unanswerable:
+            top = ranked[0] if ranked else None
+            citations.append(
+                score_citation(
+                    question_id=q["id"],
+                    expected_accession=q.get("expected_accession"),
+                    expected_items=q.get("expected_items"),
+                    cited_accession=top.accession_no if top else None,
+                    cited_item=top.item if top else None,
+                )
+            )
+
         per_question.append(
             {
                 "id": q["id"],
@@ -145,7 +165,7 @@ def evaluate_retrieval(
             hit=result.hit,
             best_rank=min(result.relevant_ranks) if result.relevant_ranks else None,
         )
-    return results, per_question
+    return results, citations, per_question
 
 
 def main() -> int:
@@ -174,13 +194,16 @@ def main() -> int:
     try:
         with EmbeddingsClient() as embedder:
             embedder.health()
-            results, per_question = evaluate_retrieval(questions, embedder=embedder, k=args.k)
+            results, citations, per_question = evaluate_retrieval(
+                questions, embedder=embedder, k=args.k
+            )
     finally:
         close_pool()
 
     payload: dict[str, Any] = {
         "provenance": provenance(retrieval_only=args.retrieval_only, gold_path=gold_path),
         "retrieval": aggregate(results, k=args.k),
+        "citations": aggregate_citations(citations),
         "per_question": per_question,
         "elapsed_s": round(time.monotonic() - started, 1),
     }
@@ -188,7 +211,7 @@ def main() -> int:
     if not args.retrieval_only:
         payload["generation"] = {
             "status": "not_implemented",
-            "note": "Ragas metrics land with the judge-calibration work.",
+            "note": "Judge-scored metrics need both a generator and a calibrated judge.",
         }
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -204,6 +227,13 @@ def main() -> int:
     print(f"  hit rate   {r['hit_rate']:.3f}")
     if r["abstain_recall"] is not None:
         print(f"  abstain    {r['abstain_recall']:.3f}")
+    c = payload["citations"]
+    if c["accession_accuracy"] is not None:
+        print(
+            f"  citation   accession {c['accession_accuracy']:.3f} "
+            f"(n={c['n_scored_accession']})  item {c['item_accuracy']:.3f} "
+            f"(n={c['n_scored_item']})"
+        )
     for category, stats in r["by_category"].items():
         print(
             f"    {category:26s} n={stats['n']:<3d} recall@{args.k}={stats[f'recall@{args.k}']:.3f}"

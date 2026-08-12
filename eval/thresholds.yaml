@@ -15,6 +15,10 @@ absolute_floor:
   ndcg@10: 0.55          # measured 0.654
   mrr: 0.45              # measured 0.579
   hit_rate: 0.85         # measured 0.960
+  citation_accession: 0.90  # measured 1.000 — top passage from the right filing
+  # No floor on citation_item yet: measured 0.680, and setting a floor at or
+  # below what the system currently does would ratify a known weakness rather
+  # than constrain it. It is tracked and reported until it improves.
 
 # Fail if a metric is worse than eval/baseline.json by more than this.
 #
