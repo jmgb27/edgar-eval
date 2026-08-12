@@ -1,0 +1,234 @@
+<!doctype html>
+<!--
+  Single file, no build step, no node_modules. The UI's job is to make the
+  retrieval visible -- which arm found each passage, what the reranker did to
+  the order, what the agent decided at each step -- not to be a product.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>edgar-eval — measured RAG over SEC filings</title>
+<style>
+  :root {
+    --bg:#0f1115; --panel:#171a21; --line:#262b36; --ink:#e6e9ef; --muted:#9aa4b2;
+    --accent:#4a9eff; --dense:#7c5cff; --lex:#00b894; --both:#4a9eff; --warn:#f0a020;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif }
+  header { padding:20px 24px; border-bottom:1px solid var(--line); display:flex;
+           align-items:baseline; gap:16px; flex-wrap:wrap }
+  h1 { font-size:17px; margin:0; letter-spacing:-.01em }
+  h1 span { color:var(--muted); font-weight:400 }
+  #status { margin-left:auto; font:12px/1 var(--mono); color:var(--muted) }
+  main { max-width:1100px; margin:0 auto; padding:24px }
+  .tabs { display:flex; gap:4px; margin-bottom:18px }
+  .tab { padding:7px 14px; border-radius:7px; border:1px solid var(--line);
+         background:transparent; color:var(--muted); cursor:pointer; font-size:14px }
+  .tab.on { background:var(--panel); color:var(--ink); border-color:var(--accent) }
+  form { display:flex; gap:8px; margin-bottom:12px }
+  input[type=text] { flex:1; padding:11px 13px; border-radius:8px; border:1px solid var(--line);
+                     background:var(--panel); color:var(--ink); font-size:15px }
+  input[type=text]:focus { outline:none; border-color:var(--accent) }
+  button.go { padding:11px 20px; border-radius:8px; border:0; background:var(--accent);
+              color:#04101f; font-weight:650; cursor:pointer; font-size:14px }
+  button.go:disabled { opacity:.5; cursor:default }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px }
+  .filters input { padding:7px 10px; border-radius:6px; border:1px solid var(--line);
+                   background:var(--panel); color:var(--ink); font-size:13px; width:120px }
+  .banner { padding:11px 14px; border-radius:8px; margin-bottom:16px; font-size:13.5px;
+            border:1px solid var(--line); background:var(--panel) }
+  .banner.warn { border-color:var(--warn); color:#ffd9a0 }
+  .stats { font:12px/1.7 var(--mono); color:var(--muted); margin-bottom:14px }
+  .card { border:1px solid var(--line); border-radius:10px; padding:14px 16px;
+          margin-bottom:11px; background:var(--panel) }
+  .meta { display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+          font:11px/1 var(--mono); color:var(--muted); margin-bottom:9px }
+  .badge { padding:3px 7px; border-radius:5px; font-weight:700; letter-spacing:.03em }
+  .b-dense { background:rgba(124,92,255,.16); color:#b6a4ff }
+  .b-lex   { background:rgba(0,184,148,.16);  color:#6ee7c4 }
+  .b-both  { background:rgba(74,158,255,.16); color:#9ecbff }
+  .b-table { background:rgba(240,160,32,.16); color:#ffcd83 }
+  .snippet { font-size:14px; white-space:pre-wrap; word-break:break-word }
+  .snippet table { border-collapse:collapse; font-size:12px; margin-top:6px; display:block;
+                   overflow-x:auto; max-width:100% }
+  .snippet td, .snippet th { border:1px solid var(--line); padding:3px 7px; white-space:nowrap }
+  a { color:var(--accent) }
+  .answer { font-size:15.5px; white-space:pre-wrap; margin-bottom:16px }
+  .answer cite { background:rgba(74,158,255,.16); color:#9ecbff; padding:1px 5px;
+                 border-radius:4px; font-style:normal; font:12px var(--mono) }
+  .timeline { border-left:2px solid var(--line); padding-left:14px; margin:16px 0 }
+  .timeline div { font:12px/1.7 var(--mono); color:var(--muted) }
+  .vote { display:flex; gap:8px; margin-top:8px }
+  .vote button { background:transparent; border:1px solid var(--line); color:var(--muted);
+                 border-radius:6px; padding:5px 11px; cursor:pointer; font-size:13px }
+  .vote button:hover { border-color:var(--accent); color:var(--ink) }
+  .empty { color:var(--muted); padding:26px 0 }
+</style>
+</head>
+<body>
+<header>
+  <h1>edgar-eval <span>— measured RAG over SEC filings</span></h1>
+  <div id="status">connecting…</div>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab on" data-tab="search">Search <span style="opacity:.6">(no API key)</span></button>
+    <button class="tab" data-tab="ask">Ask</button>
+  </div>
+
+  <div id="banner"></div>
+
+  <form id="form">
+    <input type="text" id="q" placeholder="What was the effective tax rate?" autocomplete="off">
+    <button class="go" id="go">Search</button>
+  </form>
+
+  <div class="filters" id="filters">
+    <input type="text" id="f-ticker" placeholder="ticker (AAPL)">
+    <input type="text" id="f-item"   placeholder="item (1A)">
+    <input type="text" id="f-year"   placeholder="year (2023)">
+  </div>
+
+  <div id="out"><div class="empty">Ask something about the ingested filings.</div></div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+let tab = "search", sessionId = crypto.randomUUID(), last = null;
+
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function boot() {
+  try {
+    const h = await (await fetch("/healthz")).json();
+    const c = h.corpus || {};
+    $("#status").textContent =
+      `${h.chunks} chunks · ${(c.tickers||[]).join(", ") || "empty"} · FY${c.year_min ?? "?"}-${c.year_max ?? "?"}`
+      + (h.tracing ? " · tracing on" : "");
+    if (h.extractive_mode) {
+      $("#banner").innerHTML =
+        `<div class="banner warn"><strong>Extractive mode.</strong> No generation model is
+         configured, so <code>Ask</code> returns the top-ranked source passage verbatim
+         instead of a synthesised answer. <code>Search</code> is unaffected — hybrid
+         retrieval and reranking run locally. Set <code>QWEN_API_KEY</code> in
+         <code>.env</code> for synthesised answers.</div>`;
+    }
+  } catch (e) { $("#status").textContent = "backend unavailable"; }
+}
+
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  tab = b.dataset.tab;
+  $("#go").textContent = tab === "search" ? "Search" : "Ask";
+  $("#filters").style.display = tab === "search" ? "flex" : "none";
+  $("#out").innerHTML = '<div class="empty">Ask something about the ingested filings.</div>';
+});
+
+$("#form").onsubmit = async e => {
+  e.preventDefault();
+  const question = $("#q").value.trim();
+  if (!question) return;
+  $("#go").disabled = true;
+  $("#out").innerHTML = '<div class="empty">working…</div>';
+  try { tab === "search" ? await doSearch(question) : await doAsk(question); }
+  catch (err) { $("#out").innerHTML = `<div class="banner warn">${esc(String(err))}</div>`; }
+  finally { $("#go").disabled = false; }
+};
+
+function arg(id) { const v = $(id).value.trim(); return v ? [v.toUpperCase()] : null; }
+
+async function doSearch(question) {
+  const year = $("#f-year").value.trim();
+  const body = {
+    question,
+    tickers: arg("#f-ticker"),
+    items: $("#f-item").value.trim() ? [$("#f-item").value.trim().toUpperCase()] : null,
+    year_min: year ? +year : null,
+    year_max: year ? +year : null,
+  };
+  const r = await (await fetch("/search", {
+    method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify(body)
+  })).json();
+
+  const s = r.stats;
+  let html = `<div class="stats">fused ${s.fused} → returned ${s.returned}
+    &nbsp;·&nbsp; dense-only ${s.dense_only} &nbsp;·&nbsp; lexical-only ${s.lexical_only}
+    &nbsp;·&nbsp; both ${s.both}</div>`;
+  if (r.filter_notes?.length)
+    html += `<div class="banner warn">${r.filter_notes.map(esc).join(" ")}</div>`;
+  if (!r.passages.length) html += '<div class="empty">nothing above the rerank threshold.</div>';
+
+  html += r.passages.map(p => {
+    const arm = p.in_dense && p.in_lexical
+      ? '<span class="badge b-both">DENSE + LEXICAL</span>'
+      : p.in_dense ? '<span class="badge b-dense">DENSE ONLY</span>'
+                   : '<span class="badge b-lex">LEXICAL ONLY</span>';
+    return `<div class="card">
+      <div class="meta">
+        ${arm}
+        ${p.has_table ? '<span class="badge b-table">TABLE</span>' : ''}
+        <span>${esc(p.ticker)} ${esc(p.form_type)} FY${p.fiscal_year}</span>
+        ${p.item ? `<span>Item ${esc(p.item)}${p.item_title ? " — " + esc(p.item_title.slice(0,60)) : ""}</span>` : ""}
+        <span>rrf ${p.rrf_score.toFixed(4)}</span>
+        ${p.rerank_score != null ? `<span>rerank ${p.rerank_score.toFixed(3)}</span>` : ""}
+        <a href="${esc(p.source_url)}" target="_blank" rel="noopener">source</a>
+      </div>
+      <div class="snippet">${p.table_html || esc(p.text)}</div>
+    </div>`;
+  }).join("");
+  $("#out").innerHTML = html;
+}
+
+async function doAsk(question) {
+  const r = await (await fetch("/ask", {
+    method:"POST", headers:{"content-type":"application/json"},
+    body: JSON.stringify({ question, session_id: sessionId })
+  })).json();
+  last = r;
+
+  const answer = esc(r.answer).replace(/\[S(\d+)\]/g, '<cite>S$1</cite>');
+  let html = `<div class="card"><div class="answer">${answer}</div>`;
+  if (!r.extractive)
+    html += `<div class="stats">groundedness ${r.groundedness.toFixed(2)}</div>`;
+  html += `<div class="vote">
+      <button onclick="vote(1)">👍 helpful</button>
+      <button onclick="vote(-1)">👎 not helpful</button>
+    </div></div>`;
+
+  if (r.trace_notes?.length)
+    html += `<div class="timeline">${r.trace_notes.map(n => `<div>${esc(n)}</div>`).join("")}</div>`;
+
+  html += r.citations.map(c => `<div class="card">
+      <div class="meta">
+        <span class="badge b-both">${esc(c.marker)}</span>
+        <span>${esc(c.ticker)} ${esc(c.form_type)} FY${c.fiscal_year}</span>
+        ${c.item ? `<span>Item ${esc(c.item)}</span>` : ""}
+        <a href="${esc(c.source_url)}" target="_blank" rel="noopener">source</a>
+      </div>
+      <div class="snippet">${esc(c.quote)}</div>
+    </div>`).join("");
+  $("#out").innerHTML = html;
+}
+
+async function vote(rating) {
+  if (!last) return;
+  await fetch("/feedback", {
+    method:"POST", headers:{"content-type":"application/json"},
+    body: JSON.stringify({
+      session_id: sessionId, question: last.question, answer: last.answer,
+      rating, trace_id: last.trace_id,
+      chunk_ids: (last.citations || []).map(c => c.chunk_id),
+    })
+  });
+  document.querySelector(".vote").innerHTML = '<span class="stats">thanks — recorded.</span>';
+}
+
+boot();
+</script>
+</body>
+</html>
