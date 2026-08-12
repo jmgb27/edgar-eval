@@ -27,7 +27,8 @@ WITH params AS (
         %(items)s::text[]       AS f_items,
         %(year_min)s::int       AS f_year_min,
         %(year_max)s::int       AS f_year_max,
-        %(pool)s::int           AS n_pool,
+        %(pool_dense)s::int     AS n_pool_dense,
+        %(pool_lexical)s::int   AS n_pool_lexical,
         %(fused)s::int          AS n_out,
         %(rrf_k)s::int          AS rrf_k
 ),
@@ -45,7 +46,7 @@ dense AS (
            ROW_NUMBER() OVER (ORDER BY f.embedding::halfvec(1024) <=> p.qvec) AS rank
     FROM filtered f, params p
     ORDER BY f.embedding::halfvec(1024) <=> p.qvec
-    LIMIT (SELECT n_pool FROM params)
+    LIMIT (SELECT n_pool_dense FROM params)
 ),
 -- The lexical arm ORs its terms. This is not a detail.
 --
@@ -73,7 +74,7 @@ lexical AS (
     WHERE q.query IS NOT NULL
       AND f.tsv @@ q.query
     ORDER BY ts_rank_cd(f.tsv, q.query) DESC
-    LIMIT (SELECT n_pool FROM params)
+    LIMIT (SELECT n_pool_lexical FROM params)
 ),
 fused AS (
     SELECT id,

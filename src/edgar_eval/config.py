@@ -71,6 +71,11 @@ class Settings(BaseSettings):
     retrieval_pool: int = Field(default=40, description="per-arm candidates before fusion")
     retrieval_fused: int = Field(default=24, description="survivors of RRF, fed to reranker")
     retrieval_topk: int = Field(default=6, description="survivors of rerank, fed to generator")
+    # Ablation switches. These exist so every row of the README table is
+    # produced by the shipped pipeline under a different setting, rather than
+    # by commenting code out and trusting the result.
+    retrieval_mode: str = Field(default="hybrid", description="hybrid | dense | lexical")
+    rerank_enabled: bool = True
     rerank_min_score: float = 0.05
     # Whether the cross-encoder sees the contextual header the embedder saw.
     # An ablation dimension, not a settled question -- see

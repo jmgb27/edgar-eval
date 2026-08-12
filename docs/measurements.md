@@ -243,3 +243,67 @@ broken*, not as *the instrument is perfect*. At n=50 a single flipped judgement
 moves either rate by four points, so run-to-run differences of a point or two
 are noise. The honest next step is adding plausible rather than obvious
 corruptions and re-measuring.
+
+## The ablation, and the result that does not flatter the design (Phase 7)
+
+Four configurations of the shipped pipeline, produced by settings rather than by
+editing code, over the same 25 answerable questions. `make eval-retrieval`,
+deterministic, no API key.
+
+| Configuration | Recall@10 | nDCG@10 | MRR | Hit | Citation item |
+|---|---|---|---|---|---|
+| **Dense only, no reranker** | **0.940** | **0.734** | **0.661** | 0.960 | **0.840** |
+| + hybrid retrieval (dense + FTS, RRF) | 0.860 | 0.507 | 0.393 | 0.880 | 0.760 |
+| + BGE reranker (full pipeline) | 0.920 | 0.654 | 0.579 | 0.960 | 0.680 |
+| Dense + reranker (no hybrid) | 0.920 | 0.654 | 0.579 | 0.960 | 0.680 |
+
+**The simplest configuration wins on every metric.** Plain dense retrieval with
+no lexical arm and no cross-encoder beats the full pipeline this project was
+built to demonstrate. That is not the result the design predicted, and it is
+reported first rather than buried.
+
+### What is noise and what is not
+
+The **aggregate** difference is one question. Dense-only finds `rsk-01` (gold span
+at rank 9) and misses `tmp-03`; the full pipeline does the reverse. At n=25 a
+single question moves recall by 0.04, so 0.940 against 0.920 says nothing.
+
+The **ranking** difference is not noise, because it is systematic by category:
+
+| | dense-only rank → full-pipeline rank |
+|---|---|
+| Promoted (narrative, comparison) | `cmp-02` 2→1 · `cmp-03` 2→1 · `rsk-02` 3→1 · `sf-02` 2→1 · `sf-03` 4→2 |
+| Demoted (tables, temporal) | `tbl-02` 1→4 · `tbl-03` 1→4 · `tbl-04` 1→3 · `tbl-07` 2→7 · `tmp-01` 3→6 · `tmp-02` 2→7 |
+
+The reranker helps prose and hurts tables, consistently. That is the same
+weakness citation-item accuracy reports independently (0.840 → 0.680): the
+reranker is moving table chunks out of first place, and tables are the reason
+this corpus was chosen.
+
+The likely mechanism connects to the contextual-header result above. The header
+that makes short table chunks *retrievable* also gives every candidate a long
+shared prefix, and a 157-character table plus a 120-character header is mostly
+header. The cross-encoder sees proportionally less distinguishing content for
+exactly the chunks that matter most.
+
+### Why the default is not being changed on this evidence
+
+One eval set, one corpus of two filings, n=25, and a span-containment metric that
+rewards finding text rather than answering well. Switching to dense-only on that
+basis would be the same anecdote-driven tuning the contextual-header result
+already caught out, in the opposite direction.
+
+What the evidence does support, and what is worth doing next:
+
+1. **Shorten the header for reranking** — company, year and Item, dropping the
+   section breadcrumb — and re-measure the table categories specifically.
+2. **Fix the lexical arm rather than remove it.** OR-relaxation was the fix for an
+   arm that returned nothing under AND, and it over-corrected: the arm now floods
+   the pool with weak matches that RRF ranks highly because RRF reads rank, not
+   score. A minimum-matching-terms threshold sits between the two extremes.
+3. **Grow the eval set.** At n=25 nothing below a four-point difference is
+   readable, and every conclusion here is provisional because of it.
+
+The pipeline ships in its current configuration with these numbers published
+against it. A benchmark that only ever confirmed the design would not be worth
+running.

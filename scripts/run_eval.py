@@ -82,6 +82,8 @@ def provenance(*, retrieval_only: bool, gold_path: Path) -> dict[str, Any]:
         "embedding_model": settings.embedding_model,
         "reranker_model": settings.reranker_model,
         "rerank_with_context": settings.rerank_with_context,
+        "retrieval_mode": settings.retrieval_mode,
+        "rerank_enabled": settings.rerank_enabled,
         "retrieval": {
             "pool": settings.retrieval_pool,
             "fused": settings.retrieval_fused,

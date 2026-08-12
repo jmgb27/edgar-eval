@@ -91,6 +91,15 @@ def hybrid_search(
         "pool": pool or settings.retrieval_pool,
         "fused": fused or settings.retrieval_fused,
         "rrf_k": settings.rrf_k,
+        # An arm is disabled by giving it a pool of zero, so the SQL is the
+        # same statement in every configuration and the ablation cannot
+        # accidentally compare two different queries.
+        "pool_dense": 0
+        if settings.retrieval_mode == "lexical"
+        else (pool or settings.retrieval_pool),
+        "pool_lexical": 0
+        if settings.retrieval_mode == "dense"
+        else (pool or settings.retrieval_pool),
         **filters.as_params(),
     }
 
@@ -139,6 +148,10 @@ def rerank_candidates(
     if not candidates:
         return []
     top_k = top_k or settings.retrieval_topk
+    if not settings.rerank_enabled:
+        # Ablation: keep RRF order untouched so the reranker's contribution is
+        # the difference between this row and the one above it.
+        return candidates[:top_k]
     min_score = settings.rerank_min_score if min_score is None else min_score
 
     # embed_text, not text. The cross-encoder must see the same contextual
