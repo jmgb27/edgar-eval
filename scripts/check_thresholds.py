@@ -35,11 +35,30 @@ def main() -> int:
 
     results = json.loads(args.results.read_text())
     thresholds = yaml.safe_load(args.thresholds.read_text())
-    current: dict[str, Any] = results["retrieval"]
+    current: dict[str, Any] = dict(results["retrieval"])
+    # Citation metrics are reported under their own key because they measure
+    # something different from ranking, but the gate treats every number the
+    # same way, so they are flattened in under stable names here rather than
+    # given a parallel set of threshold machinery.
+    citations: dict[str, Any] = results.get("citations") or {}
+    for src, dest in (
+        ("accession_accuracy", "citation_accession"),
+        ("item_accuracy", "citation_item"),
+    ):
+        if citations.get(src) is not None:
+            current[dest] = citations[src]
 
     baseline: dict[str, Any] | None = None
     if args.baseline and args.baseline.exists():
-        baseline = json.loads(args.baseline.read_text()).get("retrieval")
+        raw = json.loads(args.baseline.read_text())
+        baseline = dict(raw.get("retrieval") or {})
+        base_citations = raw.get("citations") or {}
+        for src, dest in (
+            ("accession_accuracy", "citation_accession"),
+            ("item_accuracy", "citation_item"),
+        ):
+            if base_citations.get(src) is not None:
+                baseline[dest] = base_citations[src]
 
     failures: list[str] = []
     rows: list[tuple[str, str, str, str, str, str]] = []
