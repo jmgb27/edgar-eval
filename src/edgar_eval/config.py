@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     # Whether the cross-encoder sees the contextual header the embedder saw.
     # An ablation dimension, not a settled question -- see
     # docs/measurements.md 'Open question: rerank input'.
-    rerank_with_context: bool = True
+    rerank_with_context: bool = False
     hnsw_ef_search: int = 100
     max_retrieval_attempts: int = 2
     rrf_k: int = Field(default=60, description="Cormack et al. 2009 constant; do not tune casually")
