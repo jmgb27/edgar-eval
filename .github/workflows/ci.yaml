@@ -116,9 +116,24 @@ jobs:
       - run: uv sync --all-groups
       - run: uv run python scripts/migrate.py
 
+      - name: Require a real SEC contact address
+        # Fail here, in one line, rather than 40 lines into a stack trace three
+        # minutes later. An unset repository variable expands to an empty
+        # string, and an empty environment variable *shadows* the value in .env
+        # rather than falling back to it -- so the placeholder is not a safety
+        # net and the run would 403 against SEC with no obvious cause.
+        env:
+          EDGAR_USER_AGENT: ${{ vars.EDGAR_USER_AGENT }}
+        run: |
+          if [ -z "${EDGAR_USER_AGENT// /}" ] || [[ "$EDGAR_USER_AGENT" == *example.com* ]]; then
+            echo "::error::Repository variable EDGAR_USER_AGENT is unset or still the placeholder."
+            echo "SEC requires a declared User-Agent with a real contact address and returns 403 without one."
+            echo "Set it with: gh variable set EDGAR_USER_AGENT --body 'edgar-eval you@your-domain.com'"
+            exit 1
+          fi
+          echo "EDGAR contact address configured."
+
       - name: Ingest the evaluation corpus
-        # A real contact address is required by SEC and must not be the
-        # placeholder from .env.example.
         env:
           EDGAR_USER_AGENT: ${{ vars.EDGAR_USER_AGENT }}
         run: |
